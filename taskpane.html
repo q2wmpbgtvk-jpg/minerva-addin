@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Engagement Letter Generator</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link rel="stylesheet" href="taskpane.css"/>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-title">Minerva Planning Group</div>
+    <div class="header-sub">Engagement Letter Generator</div>
+  </div>
+
+  <!-- STEP INDICATOR -->
+  <div class="steps">
+    <div class="step active" id="step-dot-1">1</div>
+    <div class="step-line"></div>
+    <div class="step" id="step-dot-2">2</div>
+    <div class="step-line"></div>
+    <div class="step" id="step-dot-3">3</div>
+    <div class="step-line"></div>
+    <div class="step" id="step-dot-4">4</div>
+  </div>
+  <div class="step-labels">
+    <span>Client</span>
+    <span>Blocks</span>
+    <span>Edit</span>
+    <span>Generate</span>
+  </div>
+
+  <!-- ══ SCREEN 1: Client Info ══════════════════════════════ -->
+  <div id="screen-1" class="screen active">
+    <h2>Client Information</h2>
+
+    <div class="field">
+      <label for="primaryName">Primary client name <span class="req">*</span></label>
+      <input type="text" id="primaryName" placeholder="e.g. Jane Smith"/>
+    </div>
+
+    <div class="field">
+      <label class="checkbox-label">
+        <input type="checkbox" id="hasSpouse" onchange="toggleSpouse()"/>
+        Include spouse / partner
+      </label>
+    </div>
+
+    <div class="field" id="spouseField" style="display:none">
+      <label for="spouseName">Spouse / partner name <span class="req">*</span></label>
+      <input type="text" id="spouseName" placeholder="e.g. John Smith"/>
+    </div>
+
+    <div class="field">
+      <label for="hours">Estimated hours <span class="req">*</span></label>
+      <div class="input-row">
+        <input type="number" id="hours" min="1" max="100" step="0.5" placeholder="e.g. 8" oninput="updateFeeDisplay()"/>
+        <span class="fee-display">= <strong id="feeDisplay">$0</strong></span>
+      </div>
+      <div class="hint">at $300/hr — balance due after deposit of $1,200</div>
+    </div>
+
+    <div class="error" id="error-1"></div>
+    <button class="btn-primary" onclick="goToScreen2()">Next: Planning Blocks →</button>
+  </div>
+
+  <!-- ══ SCREEN 2: Planning Blocks ══════════════════════════ -->
+  <div id="screen-2" class="screen">
+    <h2>Planning Blocks</h2>
+    <p class="screen-desc">Standard blocks are pre-selected.</p>
+
+    <div class="block-group">
+      <div class="group-label">Standard</div>
+      <label class="block-item"><input type="checkbox" id="blkRetirement" checked/>
+        <div class="block-text"><strong>Retirement Planning</strong><span>Base plan, scenarios, goal analysis</span></div></label>
+      <label class="block-item"><input type="checkbox" id="blkInsurance" checked/>
+        <div class="block-text"><strong>Insurance Review</strong><span>Life, disability, LTC, P&amp;C coverage</span></div></label>
+      <label class="block-item"><input type="checkbox" id="blkEstate" checked/>
+        <div class="block-text"><strong>Estate Planning</strong><span>Documents review, attorney referral</span></div></label>
+      <label class="block-item"><input type="checkbox" id="blkInvestment" checked/>
+        <div class="block-text"><strong>Investment Portfolio Review</strong><span>Allocation analysis, red flags</span></div></label>
+    </div>
+
+    <div class="block-group">
+      <div class="group-label">Additional Services</div>
+      <label class="block-item"><input type="checkbox" id="blkCollege"/>
+        <div class="block-text"><strong>College Funding Analysis</strong><span>529 plans, savings strategies</span></div></label>
+      <label class="block-item"><input type="checkbox" id="blkScenarios"/>
+        <div class="block-text"><strong>Scenario Analysis</strong><span>Retirement timing, Social Security, other what-ifs</span></div></label>
+      <label class="block-item"><input type="checkbox" id="blkHome"/>
+        <div class="block-text"><strong>Home Purchase Analysis</strong><span>Affordability, financing options</span></div></label>
+      <label class="block-item"><input type="checkbox" id="blkTax"/>
+        <div class="block-text"><strong>Tax-Efficient Distribution</strong><span>RMDs, Roth conversions, sequencing</span></div></label>
+    </div>
+
+    <div class="error" id="error-2"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goToScreen(1)">← Back</button>
+      <button class="btn-primary" onclick="goToScreen3()">Next: Review & Edit →</button>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 3: Edit Goals / Objectives / Steps ══════════ -->
+  <div id="screen-3" class="screen">
+    <h2>Review &amp; Edit</h2>
+    <p class="screen-desc">Edit any item before generating. Click a bullet to edit it inline.</p>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab active" id="tab-goals"      onclick="switchTab('goals')">Goals</button>
+      <button class="tab"        id="tab-objectives" onclick="switchTab('objectives')">Objectives</button>
+      <button class="tab"        id="tab-steps"      onclick="switchTab('steps')">Steps</button>
+    </div>
+
+    <!-- Goals panel -->
+    <div class="tab-panel active" id="panel-goals">
+      <div id="goals-list" class="item-list"></div>
+    </div>
+
+    <!-- Objectives panel -->
+    <div class="tab-panel" id="panel-objectives">
+      <div id="objectives-list" class="item-list"></div>
+    </div>
+
+    <!-- Steps panel -->
+    <div class="tab-panel" id="panel-steps">
+      <p class="screen-desc" style="margin-top:4px">Steps are grouped by block. Each block heading appears in the document.</p>
+      <div id="steps-list" class="item-list"></div>
+    </div>
+
+    <div class="error" id="error-3"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goToScreen(2)">← Back</button>
+      <button class="btn-primary" onclick="goToScreen4()">Next: Preview →</button>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 4: Preview & Generate ══════════════════════ -->
+  <div id="screen-4" class="screen">
+    <h2>Preview</h2>
+    <div id="preview-box" class="preview-box"></div>
+    <div class="error" id="error-4"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goToScreen(3)">← Back</button>
+      <button class="btn-primary" id="generateBtn" onclick="generateLetter()">Generate Letter</button>
+    </div>
+  </div>
+
+  <!-- ══ SUCCESS ════════════════════════════════════════════ -->
+  <div id="screen-success" class="screen">
+    <div class="success-icon">✓</div>
+    <h2>Letter Generated</h2>
+    <p>The engagement letter has been created in a new document.</p>
+    <p class="hint">Save with the client's name and you're done.</p>
+    <button class="btn-primary" onclick="resetForm()">Generate Another Letter</button>
+  </div>
+
+</div>
+<script src="blocks.js"></script>
+<script src="taskpane.js"></script>
+</body>
+</html>
