@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IAA Generator</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link rel="stylesheet" href="taskpane.css"/>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-title">Minerva Planning Group</div>
+    <div class="header-sub">Investment Advisory Agreement</div>
+  </div>
+
+  <!-- STEP INDICATOR -->
+  <div class="steps">
+    <div class="step active" id="step-dot-1">1</div>
+    <div class="step-line"></div>
+    <div class="step" id="step-dot-2">2</div>
+    <div class="step-line"></div>
+    <div class="step" id="step-dot-3">3</div>
+  </div>
+  <div class="step-labels">
+    <span>Client</span>
+    <span>Preview</span>
+    <span>Generate</span>
+  </div>
+
+  <!-- ══ SCREEN 1: Client Info ══════════════════════════════ -->
+  <div id="screen-1" class="screen active">
+    <h2>Client Information</h2>
+
+    <div class="field">
+      <label for="client1Name">Client 1 (primary) <span class="req">*</span></label>
+      <input type="text" id="client1Name" placeholder="e.g. Jane Public"/>
+    </div>
+
+    <div class="field">
+      <label class="checkbox-label">
+        <input type="checkbox" id="hasClient2" onchange="toggleClient2()"/>
+        Include second client (spouse / partner)
+      </label>
+    </div>
+
+    <div class="field" id="client2Field" style="display:none">
+      <label for="client2Name">Client 2 <span class="req">*</span></label>
+      <input type="text" id="client2Name" placeholder="e.g. John Public"/>
+    </div>
+
+    <div class="field">
+      <label for="combinedNames">Combined name (as shown in agreement) <span class="req">*</span></label>
+      <input type="text" id="combinedNames" placeholder="e.g. John and Jane Public"/>
+      <div class="hint">This appears in the opening paragraph: "...is made by and between Minerva Planning Group, Inc. and: [this name]"</div>
+    </div>
+
+    <div class="error" id="error-1"></div>
+    <button class="btn-primary" onclick="goToScreen2()">Next: Preview →</button>
+  </div>
+
+  <!-- ══ SCREEN 2: Preview ══════════════════════════════════ -->
+  <div id="screen-2" class="screen">
+    <h2>Preview</h2>
+    <div id="preview-box" class="preview-box"></div>
+    <div class="error" id="error-2"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goToScreen(1)">← Back</button>
+      <button class="btn-primary" id="generateBtn" onclick="generateIAA()">Generate IAA</button>
+    </div>
+  </div>
+
+  <!-- ══ SUCCESS ════════════════════════════════════════════ -->
+  <div id="screen-success" class="screen">
+    <div class="success-icon">✓</div>
+    <h2>IAA Generated</h2>
+    <p>The Investment Advisory Agreement has been created in a new document.</p>
+    <p class="hint">Save with the client's name and you're done.</p>
+    <button class="btn-primary" onclick="resetForm()">Generate Another IAA</button>
+  </div>
+
+</div>
+<script src="taskpane.js"></script>
+</body>
+</html>
