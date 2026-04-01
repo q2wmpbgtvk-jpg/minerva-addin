@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>IPS Generator</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link rel="stylesheet" href="ips-taskpane.css"/>
+</head>
+<body>
+
+<!-- ── Screen 1: Search ──────────────────────────────────────────────────── -->
+<div id="screen1" class="screen">
+  <div class="header">
+    <div class="logo">IPS Generator</div>
+    <div class="subtitle">Minerva Planning Group</div>
+  </div>
+  <div class="content">
+    <label class="field-label">Search client</label>
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Client name..." class="input"/>
+      <button id="searchBtn" class="btn btn-primary">Search</button>
+    </div>
+    <ul id="resultsList" class="results-list"></ul>
+    <div id="status" class="status"></div>
+  </div>
+</div>
+
+<!-- ── Screen 2: Preview & Edit ─────────────────────────────────────────── -->
+<div id="screen2" class="screen" style="display:none">
+  <div class="header">
+    <div class="logo">IPS Generator</div>
+    <div class="subtitle" id="prevName"></div>
+  </div>
+  <div class="content">
+
+    <div class="preview-row">
+      <span class="preview-label">Allocation</span>
+      <span class="preview-value" id="prevAllocation"></span>
+    </div>
+    <div class="preview-row">
+      <span class="preview-label">Real Net Return</span>
+      <span class="preview-value" id="prevReturn"></span>
+    </div>
+    <div class="preview-row">
+      <span class="preview-label">Max Drawdown</span>
+      <span class="preview-value" id="prevDrawdown"></span>
+    </div>
+    <div class="preview-row">
+      <span class="preview-label">Recovery Time</span>
+      <span class="preview-value"><span id="prevRecovery"></span> days</span>
+    </div>
+
+    <label class="field-label">Background</label>
+    <textarea id="prevBackground" class="textarea" rows="4"></textarea>
+
+    <label class="field-label">Cash Needs</label>
+    <textarea id="prevCashNeeds" class="textarea" rows="3"></textarea>
+
+    <label class="field-label">Time Frame</label>
+    <textarea id="prevTimeFrame" class="textarea" rows="2"></textarea>
+
+    <label class="field-label">Unique Considerations</label>
+    <textarea id="prevUnique" class="textarea" rows="3"></textarea>
+
+    <div id="status2" class="status"></div>
+
+    <div class="btn-row">
+      <button id="backBtn" class="btn btn-secondary">← Back</button>
+      <button id="nextBtn" class="btn btn-primary">Next: Signers →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Screen 3: Signers ─────────────────────────────────────────────────── -->
+<div id="screen3" class="screen" style="display:none">
+  <div class="header">
+    <div class="logo">IPS Generator</div>
+    <div class="subtitle">Signature Lines</div>
+  </div>
+  <div class="content">
+
+    <p class="hint">Enter the name(s) that should appear on the signature lines. Leave Signer 2 blank if there is only one signer.</p>
+
+    <label class="field-label">Signer 1</label>
+    <input id="signer1" type="text" class="input" placeholder="e.g. Mary Psaila"/>
+
+    <label class="field-label">Signer 2 (optional)</label>
+    <input id="signer2" type="text" class="input" placeholder="Leave blank if not applicable"/>
+
+    <div id="status3" class="status"></div>
+
+    <div class="btn-row">
+      <button id="backBtn2" class="btn btn-secondary">← Back</button>
+      <button id="generateBtn" class="btn btn-primary">Generate IPS</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Screen 4: Done ────────────────────────────────────────────────────── -->
+<div id="screen4" class="screen" style="display:none">
+  <div class="header">
+    <div class="logo">IPS Generator</div>
+  </div>
+  <div class="content center">
+    <div class="success-icon">✓</div>
+    <div class="success-msg">IPS generated successfully</div>
+    <button onclick="showScreen('screen1')" class="btn btn-primary" style="margin-top:20px">
+      New IPS
+    </button>
+  </div>
+</div>
+
+<script src="ips-taskpane.js"></script>
+</body>
+</html>

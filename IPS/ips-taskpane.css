@@ -1,0 +1,115 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  color: #222;
+  background: #fff;
+}
+
+.header {
+  background: #2c3e50;
+  color: #fff;
+  padding: 14px 16px 10px;
+}
+
+.logo { font-size: 15px; font-weight: bold; letter-spacing: 0.5px; }
+.subtitle { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+.content { padding: 16px; }
+
+.field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: bold;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 12px 0 4px;
+}
+
+.input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: Arial, sans-serif;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.search-row .input { flex: 1; }
+
+.textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: Arial, sans-serif;
+  resize: vertical;
+}
+
+.results-list {
+  list-style: none;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.results-list li:hover { background: #f0f4f8; }
+
+.preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.preview-label { font-size: 11px; color: #777; }
+.preview-value { font-size: 13px; font-weight: bold; color: #2c3e50; }
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: Arial, sans-serif;
+  cursor: pointer;
+}
+
+.btn-primary { background: #2c3e50; color: #fff; }
+.btn-primary:hover { background: #3d5166; }
+.btn-secondary { background: #e0e0e0; color: #333; }
+.btn-secondary:hover { background: #ccc; }
+
+.btn-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.status {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #555;
+  min-height: 18px;
+}
+
+.center { text-align: center; padding-top: 40px; }
+.success-icon { font-size: 48px; color: #27ae60; }
+.success-msg { font-size: 16px; font-weight: bold; color: #2c3e50; margin-top: 12px; }
+
+.hint {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
