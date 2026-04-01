@@ -137,7 +137,7 @@ async function generateIPS() {
 
   try {
     const resp = await fetch(
-      'https://q2wmpbgtvk-jpg.github.io/minerva-addin/ips/ips-template.docx'
+      'https://q2wmpbgtvk-jpg.github.io/minerva-addin/IPS/ips-template.docx'
     );
     if (!resp.ok) throw new Error('Could not load IPS template');
     const buf = await resp.arrayBuffer();
