@@ -53,7 +53,7 @@ async function searchClient() {
   setStatus('status', 'Loading staged client...');
   try {
     const resp = await fetch('https://localhost:3000/ips-client');
-    if (!resp.ok) throw new Error('MinervaBridge not reachable');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' from server');
     const data = await resp.json();
 
     if (data.error) {
