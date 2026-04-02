@@ -52,7 +52,7 @@ async function searchClient() {
 
   setStatus('status', 'Loading staged client...');
   try {
-    const resp = await fetch('https://localhost:3000/ips-client');
+    const resp = await fetch('https://127.0.0.1:3000/ips-client');
     if (!resp.ok) throw new Error('MinervaBridge not reachable');
     const data = await resp.json();
 
@@ -68,7 +68,7 @@ async function searchClient() {
 
     loadClient(data);
   } catch (e) {
-    setStatus('status', 'Could not reach MinervaBridge. Is it running?', true);
+    setStatus('status', 'Error: ' + e.message + ' (' + e.name + ')', true);
   }
 }
 
