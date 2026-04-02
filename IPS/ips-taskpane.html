@@ -1,315 +1,117 @@
-/* ── IPS Task Pane ─────────────────────────────────────────────────────────
-   Screens: 1) Search  2) Preview/edit  3) Signers  4) Done
-   Data source: Node.js server at localhost:3000
-   ───────────────────────────────────────────────────────────────────────── */
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>IPS Generator</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link rel="stylesheet" href="ips-taskpane.css"/>
+</head>
+<body>
 
-'use strict';
+<!-- ── Screen 1: Search ──────────────────────────────────────────────────── -->
+<div id="screen1" class="screen">
+  <div class="header">
+    <div class="logo">IPS Generator</div>
+    <div class="subtitle">Minerva Planning Group</div>
+  </div>
+  <div class="content">
+    <label class="field-label">Search client</label>
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Client name..." class="input"/>
+      <button id="searchBtn" class="btn btn-primary">Search</button>
+    </div>
+    <ul id="resultsList" class="results-list"></ul>
+    <div id="status" class="status"></div>
+  </div>
+</div>
 
-const MGP_CPI = 0.0395; // From risk/return spreadsheet (3/28/96 to 3/27/26)
+<!-- ── Screen 2: Preview & Edit ─────────────────────────────────────────── -->
+<div id="screen2" class="screen" style="display:none">
+  <div class="header">
+    <div class="logo">IPS Generator</div>
+    <div class="subtitle" id="prevName"></div>
+  </div>
+  <div class="content">
 
-const PORTFOLIOS = {
-  'Equity Tilted Balanced': { grossReturn: 0.0808, maxDrawdown: -0.458, recoveryDays: 1139 },
-  'Balanced':               { grossReturn: 0.0765, maxDrawdown: -0.390, recoveryDays: 896  },
-  'Conservative':           { grossReturn: 0.0638, maxDrawdown: -0.254, recoveryDays: 485  },
-};
+    <div class="preview-row">
+      <span class="preview-label">Allocation</span>
+      <span class="preview-value" id="prevAllocation"></span>
+    </div>
+    <div class="preview-row">
+      <span class="preview-label">Real Net Return</span>
+      <span class="preview-value" id="prevReturn"></span>
+    </div>
+    <div class="preview-row">
+      <span class="preview-label">Max Drawdown</span>
+      <span class="preview-value" id="prevDrawdown"></span>
+    </div>
+    <div class="preview-row">
+      <span class="preview-label">Recovery Time</span>
+      <span class="preview-value"><span id="prevRecovery"></span> days</span>
+    </div>
 
-function pct(val) {
-  return (val * 100).toFixed(1) + '%';
-}
+    <label class="field-label">Background</label>
+    <textarea id="prevBackground" class="textarea" rows="4"></textarea>
 
-function getPortfolioStats(allocation, estimatedFeeBps) {
-  const p = PORTFOLIOS[allocation];
-  if (!p) return null;
-  const feePct = (parseFloat(estimatedFeeBps) || 0) / 10000;
-  const allocationReturn = p.grossReturn - feePct - MGP_CPI;
-  return {
-    allocationReturn: pct(allocationReturn),
-    maxDrawdown:      pct(p.maxDrawdown),
-    recoveryDays:     p.recoveryDays.toString(),
-  };
-}
+    <label class="field-label">Cash Needs</label>
+    <textarea id="prevCashNeeds" class="textarea" rows="3"></textarea>
 
-// ── Screen management ───────────────────────────────────────────────────────
-let clientData = {};
+    <label class="field-label">Time Frame</label>
+    <textarea id="prevTimeFrame" class="textarea" rows="2"></textarea>
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-  document.getElementById(id).style.display = 'block';
-}
+    <label class="field-label">Unique Considerations</label>
+    <textarea id="prevUnique" class="textarea" rows="3"></textarea>
 
-function setStatus(id, msg, isError = false) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.textContent = msg;
-    el.style.color = isError ? '#c00' : '#555';
-  }
-}
+    <div id="status2" class="status"></div>
 
-// ── Screen 1: Search ────────────────────────────────────────────────────────
-async function searchClient() {
-  const query = document.getElementById('searchInput').value.trim();
-  if (!query) return;
+    <div class="btn-row">
+      <button id="backBtn" class="btn btn-secondary">← Back</button>
+      <button id="nextBtn" class="btn btn-primary">Next: Signers →</button>
+    </div>
+  </div>
+</div>
 
-  setStatus('status', 'Loading staged client...');
-  try {
-    const resp = await fetch('https://localhost:3000/ips-client');
-    if (!resp.ok) throw new Error('MinervaBridge not reachable');
-    const data = await resp.json();
+<!-- ── Screen 3: Signers ─────────────────────────────────────────────────── -->
+<div id="screen3" class="screen" style="display:none">
+  <div class="header">
+    <div class="logo">IPS Generator</div>
+    <div class="subtitle">Signature Lines</div>
+  </div>
+  <div class="content">
 
-    if (data.error) {
-      setStatus('status', data.error, true);
-      return;
-    }
+    <p class="hint">Enter the name(s) that should appear on the signature lines. Leave Signer 2 blank if there is only one signer.</p>
 
-    if (!data.name.toLowerCase().includes(query.toLowerCase())) {
-      setStatus('status', `Staged client is "${data.name}" — does not match "${query}". Stage the correct client in MinervaBridge.`, true);
-      return;
-    }
+    <label class="field-label">Signer 1</label>
+    <input id="signer1" type="text" class="input" placeholder="e.g. Mary Psaila"/>
 
-    loadClient(data);
-  } catch (e) {
-    setStatus('status', 'Could not reach MinervaBridge. Is it running?', true);
-  }
-}
+    <label class="field-label">Signer 2 (optional)</label>
+    <input id="signer2" type="text" class="input" placeholder="Leave blank if not applicable"/>
 
-function loadClient(data) {
-  clientData = data;
-  const stats = getPortfolioStats(data.allocation, data.estimated_fee);
+    <div id="status3" class="status"></div>
 
-  document.getElementById('prevName').textContent       = data.name || '';
-  document.getElementById('prevAllocation').textContent = data.allocation || '';
-  document.getElementById('prevBackground').value       = data.background_info || '';
-  document.getElementById('prevCashNeeds').value        = data.liquidity_needs || '';
-  document.getElementById('prevTimeFrame').value        = data.time_frame || '';
-  document.getElementById('prevUnique').value           = data.unique_considerations || '';
+    <div class="btn-row">
+      <button id="backBtn2" class="btn btn-secondary">← Back</button>
+      <button id="generateBtn" class="btn btn-primary">Generate IPS</button>
+    </div>
+  </div>
+</div>
 
-  if (stats) {
-    document.getElementById('prevReturn').textContent   = stats.allocationReturn;
-    document.getElementById('prevDrawdown').textContent = stats.maxDrawdown;
-    document.getElementById('prevRecovery').textContent = stats.recoveryDays;
-  } else {
-    document.getElementById('prevReturn').textContent   = `Unknown allocation: "${data.allocation}"`;
-    document.getElementById('prevDrawdown').textContent = '-';
-    document.getElementById('prevRecovery').textContent = '-';
-  }
+<!-- ── Screen 4: Done ────────────────────────────────────────────────────── -->
+<div id="screen4" class="screen" style="display:none">
+  <div class="header">
+    <div class="logo">IPS Generator</div>
+  </div>
+  <div class="content center">
+    <div class="success-icon">✓</div>
+    <div class="success-msg">IPS generated successfully</div>
+    <button onclick="showScreen('screen1')" class="btn btn-primary" style="margin-top:20px">
+      New IPS
+    </button>
+  </div>
+</div>
 
-  setStatus('status', '');
-  showScreen('screen2');
-}
-
-// ── Screen 2: Preview ───────────────────────────────────────────────────────
-function goToSigners() {
-  const allocation = clientData.allocation || '';
-  if (!PORTFOLIOS[allocation]) {
-    setStatus('status2', `Unknown allocation: "${allocation}". Check Wealthbox field.`, true);
-    return;
-  }
-  setStatus('status2', '');
-  showScreen('screen3');
-}
-
-// ── Screen 3: Signers ───────────────────────────────────────────────────────
-async function generateIPS() {
-  const signer1 = document.getElementById('signer1').value.trim();
-  if (!signer1) {
-    setStatus('status3', 'Please enter at least one signer name.', true);
-    return;
-  }
-
-  const signer2 = document.getElementById('signer2').value.trim();
-  const allocation = clientData.allocation || '';
-  const stats = getPortfolioStats(allocation, clientData.estimated_fee);
-
-  setStatus('status3', 'Generating IPS...');
-
-  const replacements = {
-    '{{BACKGROUND}}':            document.getElementById('prevBackground').value,
-    '{{ALLOCATION}}':            allocation,
-    '{{ALLOCATION_RETURN}}':     stats.allocationReturn,
-    '{{MAX_DRAWDOWN}}':          stats.maxDrawdown,
-    '{{RECOVERY_TIME}}':         stats.recoveryDays,
-    '{{CASH_NEEDS}}':            document.getElementById('prevCashNeeds').value,
-    '{{TIME_FRAME}}':            document.getElementById('prevTimeFrame').value,
-    '{{UNIQUE_CONSIDERATIONS}}': document.getElementById('prevUnique').value,
-    '{{SIGNER_1}}':              signer1,
-    '{{SIGNER_2}}':              signer2,
-  };
-
-  try {
-    const resp = await fetch(
-      'https://q2wmpbgtvk-jpg.github.io/minerva-addin/IPS/ips-template.docx'
-    );
-    if (!resp.ok) throw new Error('Could not load IPS template');
-    const buf = await resp.arrayBuffer();
-    const zip = await JSZip.loadAsync(buf);
-
-    async function replaceInEntry(filename) {
-      const file = zip.file(filename);
-      if (!file) return;
-      let text = await file.async('string');
-      for (const [find, replace] of Object.entries(replacements)) {
-        text = text.split(find).join(x(replace));
-      }
-      zip.file(filename, text);
-    }
-
-    await replaceInEntry('word/document.xml');
-
-    const modifiedBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
-
-    await Word.run(async context => {
-      const doc = context.application.createDocument(modifiedBase64);
-      context.load(doc);
-      await context.sync();
-      doc.open();
-      await context.sync();
-    });
-
-    setStatus('status3', '');
-    showScreen('screen4');
-  } catch (e) {
-    setStatus('status3', 'Error generating IPS: ' + e.message, true);
-  }
-}
-
-// ── XML escape ──────────────────────────────────────────────────────────────
-function x(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-// ── Init ────────────────────────────────────────────────────────────────────
-Office.onReady(() => {
-  showScreen('screen1');
-  document.getElementById('searchBtn').addEventListener('click', searchClient);
-  document.getElementById('searchInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') searchClient();
-  });
-  document.getElementById('backBtn').addEventListener('click', () => showScreen('screen1'));
-  document.getElementById('nextBtn').addEventListener('click', goToSigners);
-  document.getElementById('backBtn2').addEventListener('click', () => showScreen('screen2'));
-  document.getElementById('generateBtn').addEventListener('click', generateIPS);
-});  document.getElementById('prevName').textContent       = data.name || '';
-  document.getElementById('prevAllocation').textContent = data.allocation || '';
-  document.getElementById('prevBackground').value       = data.background_info || '';
-  document.getElementById('prevCashNeeds').value        = data.liquidity_needs || '';
-  document.getElementById('prevTimeFrame').value        = data.time_frame || '';
-  document.getElementById('prevUnique').value           = data.unique_considerations || '';
-
-  if (stats) {
-    document.getElementById('prevReturn').textContent   = stats.allocationReturn;
-    document.getElementById('prevDrawdown').textContent = stats.maxDrawdown;
-    document.getElementById('prevRecovery').textContent = stats.recoveryDays;
-  } else {
-    document.getElementById('prevReturn').textContent   = `Unknown allocation: "${data.allocation}"`;
-    document.getElementById('prevDrawdown').textContent = '-';
-    document.getElementById('prevRecovery').textContent = '-';
-  }
-
-  setStatus('status', '');
-  showScreen('screen2');
-}
-
-// ── Screen 2: Preview ───────────────────────────────────────────────────────
-function goToSigners() {
-  const allocation = clientData.allocation || '';
-  if (!PORTFOLIOS[allocation]) {
-    setStatus('status2', `Unknown allocation: "${allocation}". Check Wealthbox field.`, true);
-    return;
-  }
-  setStatus('status2', '');
-  showScreen('screen3');
-}
-
-// ── Screen 3: Signers ───────────────────────────────────────────────────────
-async function generateIPS() {
-  const signer1 = document.getElementById('signer1').value.trim();
-  if (!signer1) {
-    setStatus('status3', 'Please enter at least one signer name.', true);
-    return;
-  }
-
-  const signer2 = document.getElementById('signer2').value.trim();
-  const allocation = clientData.allocation || '';
-  const stats = getPortfolioStats(allocation, clientData.estimated_fee);
-
-  setStatus('status3', 'Generating IPS...');
-
-  const replacements = {
-    '{{BACKGROUND}}':            document.getElementById('prevBackground').value,
-    '{{ALLOCATION}}':            allocation,
-    '{{ALLOCATION_RETURN}}':     stats.allocationReturn,
-    '{{MAX_DRAWDOWN}}':          stats.maxDrawdown,
-    '{{RECOVERY_TIME}}':         stats.recoveryDays,
-    '{{CASH_NEEDS}}':            document.getElementById('prevCashNeeds').value,
-    '{{TIME_FRAME}}':            document.getElementById('prevTimeFrame').value,
-    '{{UNIQUE_CONSIDERATIONS}}': document.getElementById('prevUnique').value,
-    '{{SIGNER_1}}':              signer1,
-    '{{SIGNER_2}}':              signer2,
-  };
-
-  try {
-    const resp = await fetch(
-      'https://q2wmpbgtvk-jpg.github.io/minerva-addin/IPS/ips-template.docx'
-    );
-    if (!resp.ok) throw new Error('Could not load IPS template');
-    const buf = await resp.arrayBuffer();
-    const zip = await JSZip.loadAsync(buf);
-
-    async function replaceInEntry(filename) {
-      const file = zip.file(filename);
-      if (!file) return;
-      let text = await file.async('string');
-      for (const [find, replace] of Object.entries(replacements)) {
-        text = text.split(find).join(x(replace));
-      }
-      zip.file(filename, text);
-    }
-
-    await replaceInEntry('word/document.xml');
-
-    const modifiedBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
-
-    await Word.run(async context => {
-      const doc = context.application.createDocument(modifiedBase64);
-      context.load(doc);
-      await context.sync();
-      doc.open();
-      await context.sync();
-    });
-
-    setStatus('status3', '');
-    showScreen('screen4');
-  } catch (e) {
-    setStatus('status3', 'Error generating IPS: ' + e.message, true);
-  }
-}
-
-// ── XML escape ──────────────────────────────────────────────────────────────
-function x(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-// ── Init ────────────────────────────────────────────────────────────────────
-Office.onReady(() => {
-  showScreen('screen1');
-  document.getElementById('searchBtn').addEventListener('click', searchClient);
-  document.getElementById('searchInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') searchClient();
-  });
-  document.getElementById('backBtn').addEventListener('click', () => showScreen('screen1'));
-  document.getElementById('nextBtn').addEventListener('click', goToSigners);
-  document.getElementById('backBtn2').addEventListener('click', () => showScreen('screen2'));
-  document.getElementById('generateBtn').addEventListener('click', generateIPS);
-});
+<script src="ips-taskpane.js"></script>
+</body>
+</html>
