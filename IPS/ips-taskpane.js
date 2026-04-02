@@ -122,7 +122,11 @@ async function generateIPS() {
 
   setStatus('status3', 'Generating IPS...');
 
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
   const replacements = {
+    '{{NAME}}':                  clientData.name || '',
+    '{{GENERATED_DATE}}':        today,
     '{{BACKGROUND}}':            document.getElementById('prevBackground').value,
     '{{ALLOCATION}}':            allocation,
     '{{ALLOCATION_RETURN}}':     stats.allocationReturn,
@@ -154,6 +158,7 @@ async function generateIPS() {
     }
 
     await replaceInEntry('word/document.xml');
+    await replaceInEntry('word/footer1.xml');
 
     const modifiedBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
 
