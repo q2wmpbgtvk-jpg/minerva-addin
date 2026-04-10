@@ -52,7 +52,7 @@ async function searchClient() {
 
   setStatus('status', 'Loading staged client...');
   try {
-    const resp = await fetch('http://localhost:3001/api/ips-client');
+    const resp = await fetch('https://localhost:3001/api/ips-client');
     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' from server');
     const data = await resp.json();
 
