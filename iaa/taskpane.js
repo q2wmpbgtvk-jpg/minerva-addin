@@ -1,6 +1,73 @@
 'use strict';
 
-Office.onReady(function() {});
+Office.onReady(function() {
+  checkBridgeStatus();
+});
+
+// ── CRM Integration ───────────────────────────────────────
+async function pullFromCRM() {
+  const btn = document.getElementById('crmPullBtn');
+  const status = document.getElementById('crmStatus');
+  
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
+  status.textContent = '';
+  status.className = 'crm-status';
+  
+  try {
+    const response = await fetch('https://localhost:3001/api/client');
+    if (!response.ok) throw new Error('Server returned ' + response.status);
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    
+    // Populate Client 1
+    if (data.primary_name) {
+      document.getElementById('client1Name').value = data.primary_name;
+    }
+    
+    // Populate Client 2
+    if (data.spouse_name) {
+      document.getElementById('hasClient2').checked = true;
+      toggleClient2();
+      document.getElementById('client2Name').value = data.spouse_name;
+    } else {
+      document.getElementById('hasClient2').checked = false;
+      toggleClient2();
+    }
+    
+    // Trigger combined name auto-fill
+    updateCombinedName();
+    
+    status.textContent = '✓ Loaded: ' + (data.household_name || data.primary_name);
+    status.className = 'crm-status success';
+    
+  } catch (err) {
+    if (err.name === 'TypeError' && err.message.includes('Load failed')) {
+      status.textContent = '✗ MinervaBridge not running.';
+    } else {
+      status.textContent = '✗ ' + err.message;
+    }
+    status.className = 'crm-status error';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Pull from CRM';
+  }
+}
+
+async function checkBridgeStatus() {
+  const status = document.getElementById('crmStatus');
+  if (!status) return;
+  try {
+    const resp = await fetch('https://localhost:3001/api/status');
+    if (resp.ok) {
+      status.textContent = 'MinervaBridge connected';
+      status.className = 'crm-status success';
+    }
+  } catch {
+    status.textContent = 'MinervaBridge not detected';
+    status.className = 'crm-status';
+  }
+}
 
 // ── Navigation ─────────────────────────────────────────────
 function goToScreen(n) {
@@ -32,7 +99,6 @@ function updateCombinedName() {
   if (combined.dataset.manual === 'true') return;
 
   if (c1 && c2) {
-    // Extract first names and shared last name if applicable
     const parts1 = c1.split(' ');
     const parts2 = c2.split(' ');
     const last1 = parts1[parts1.length - 1];
@@ -121,38 +187,30 @@ async function generateIAA() {
     const c2       = document.getElementById('client2Name').value.trim();
     const combined = document.getElementById('combinedNames').value.trim();
 
-    // Step 1: Check JSZip
     if (typeof JSZip === 'undefined') throw new Error('JSZip library not loaded.');
 
-    // Step 2: Load template
     const resp = await fetch('template.docx');
     if (!resp.ok) throw new Error('Could not load IAA template.');
     const templateBuffer = await resp.arrayBuffer();
 
-    // Step 3: Open with JSZip
     const zip = await JSZip.loadAsync(templateBuffer);
     if (!zip.file('word/document.xml')) throw new Error('Template missing document.xml');
 
-    // Step 4: Build replacements
     const textReplacements = [
       ['{{CLIENT_NAMES}}', x(combined)],
       ['{{CLIENT1_NAME}}', x(c1)],
     ];
 
-    // Handle second client: replace placeholder or remove it
     if (hasC2 && c2) {
       textReplacements.push(['{{CLIENT2_NAME}}', x(c2)]);
     } else {
       textReplacements.push(['{{CLIENT2_NAME}}', '']);
     }
 
-    // Step 5: Apply to document.xml
     await replaceInEntry(zip, 'word/document.xml', textReplacements);
 
-    // Step 6: Generate modified docx
     const modifiedBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
 
-    // Step 7: Open as new document
     if (typeof Word === 'undefined') throw new Error('Word API not available.');
     await Word.run(async ctx => {
       if (!Office.context.requirements.isSetSupported('WordApiHiddenDocument', '1.3')) {
@@ -207,12 +265,10 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('client1Name').addEventListener('input', updateCombinedName);
   document.getElementById('client2Name').addEventListener('input', updateCombinedName);
 
-  // Track if user manually edits the combined name field
   document.getElementById('combinedNames').addEventListener('input', function() {
     this.dataset.manual = 'true';
   });
   document.getElementById('combinedNames').addEventListener('focus', function() {
-    // Allow auto-fill to resume if field is cleared
     if (!this.value.trim()) this.dataset.manual = 'false';
   });
 });

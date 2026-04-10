@@ -35,6 +35,12 @@
   <div id="screen-1" class="screen active">
     <h2>Client Information</h2>
 
+    <!-- CRM Integration -->
+    <div class="crm-pull-row">
+      <button class="btn-crm" id="crmPullBtn" onclick="pullFromCRM()">Pull from CRM</button>
+      <span class="crm-status" id="crmStatus"></span>
+    </div>
+
     <div class="field">
       <label for="client1Name">Client 1 (primary) <span class="req">*</span></label>
       <input type="text" id="client1Name" placeholder="e.g. Jane Public"/>
