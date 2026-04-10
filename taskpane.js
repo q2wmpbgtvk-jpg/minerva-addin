@@ -343,6 +343,7 @@ async function generateLetter() {
       ['PARA:{{PLANNING_BLOCKS}}',  stepsXml],
     ];
 
+    // Spouse signature - if no spouse, we'll remove the entire table row after other replacements
     const spouseReplacement = hasSpouse
       ? [['{{SPOUSE_SIGNATURE}}', x(spouse)]]
       : [['{{SPOUSE_SIGNATURE}}', '']];
@@ -362,6 +363,21 @@ async function generateLetter() {
       ...spouseReplacement,
       ...pronounReplacements,
     ]);
+
+    // Remove spouse signature row if no spouse
+    if (!hasSpouse) {
+      const docFile = zip.file('word/document.xml');
+      let docText = await docFile.async('string');
+      const spousePos = docText.indexOf('{{SPOUSE_SIGNATURE}}');
+      if (spousePos !== -1) {
+        const trStart = docText.lastIndexOf('<w:tr ', spousePos);
+        const trEnd = docText.indexOf('</w:tr>', spousePos) + '</w:tr>'.length;
+        if (trStart !== -1 && trEnd > trStart) {
+          docText = docText.slice(0, trStart) + docText.slice(trEnd);
+          zip.file('word/document.xml', docText);
+        }
+      }
+    }
 
     for (const hFile of ['word/header1.xml', 'word/header2.xml']) {
       await replaceInEntry(hFile, textReplacements);
