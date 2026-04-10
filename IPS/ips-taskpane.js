@@ -1,6 +1,6 @@
 /* ── IPS Task Pane ─────────────────────────────────────────────────────────
    Screens: 1) Search  2) Preview/edit  3) Signers  4) Done
-   Data source: Node.js server at localhost:3000
+   Data source: Node.js server at localhost:3001
    ───────────────────────────────────────────────────────────────────────── */
 
 'use strict';
@@ -52,7 +52,7 @@ async function searchClient() {
 
   setStatus('status', 'Loading staged client...');
   try {
-    const resp = await fetch('https://localhost:3000/ips-client');
+    const resp = await fetch('http://localhost:3001/api/ips-client');
     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' from server');
     const data = await resp.json();
 
