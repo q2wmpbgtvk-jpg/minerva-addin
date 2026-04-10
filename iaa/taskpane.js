@@ -204,10 +204,27 @@ async function generateIAA() {
     if (hasC2 && c2) {
       textReplacements.push(['{{CLIENT2_NAME}}', x(c2)]);
     } else {
-      textReplacements.push(['{{CLIENT2_NAME}}', '']);
+      // Will remove CLIENT2 runs after main replacements
     }
 
     await replaceInEntry(zip, 'word/document.xml', textReplacements);
+
+    // Remove CLIENT2 signature runs if no second client
+    if (!hasC2 || !c2) {
+      const docFile = zip.file('word/document.xml');
+      let docText = await docFile.async('string');
+      while (docText.indexOf('{{CLIENT2_NAME}}') !== -1) {
+        const pos = docText.indexOf('{{CLIENT2_NAME}}');
+        const rStart = docText.lastIndexOf('<w:r>', pos);
+        const rEnd = docText.indexOf('</w:r>', pos) + '</w:r>'.length;
+        if (rStart !== -1 && rEnd > rStart) {
+          docText = docText.slice(0, rStart) + docText.slice(rEnd);
+        } else {
+          break;
+        }
+      }
+      zip.file('word/document.xml', docText);
+    }
 
     const modifiedBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
 
