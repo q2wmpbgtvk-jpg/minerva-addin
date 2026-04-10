@@ -38,9 +38,15 @@
   <div id="screen-1" class="screen active">
     <h2>Client Information</h2>
 
+    <!-- CRM Integration -->
+    <div class="crm-pull-row">
+      <button class="btn-crm" id="crmPullBtn" onclick="pullFromCRM()">Pull from CRM</button>
+      <span class="crm-status" id="crmStatus"></span>
+    </div>
+
     <div class="field">
       <label for="primaryName">Primary client name <span class="req">*</span></label>
-      <input type="text" id="primaryName" placeholder="e.g. Jane Smith"/>
+      <input type="text" id="primaryName" placeholder="e.g. Jane Public"/>
     </div>
 
     <div class="field">
@@ -52,7 +58,7 @@
 
     <div class="field" id="spouseField" style="display:none">
       <label for="spouseName">Spouse / partner name <span class="req">*</span></label>
-      <input type="text" id="spouseName" placeholder="e.g. John Smith"/>
+      <input type="text" id="spouseName" placeholder="e.g. John Public"/>
     </div>
 
     <div class="field">

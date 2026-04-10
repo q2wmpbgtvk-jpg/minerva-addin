@@ -1,8 +1,70 @@
 'use strict';
 
-Office.onReady(function() {});
+Office.onReady(function() {
+  checkBridgeStatus();
+});
 
 const HOURLY_RATE = 300;
+
+// ── CRM Integration ───────────────────────────────────────
+async function pullFromCRM() {
+  const btn = document.getElementById('crmPullBtn');
+  const status = document.getElementById('crmStatus');
+  
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
+  status.textContent = '';
+  status.className = 'crm-status';
+  
+  try {
+    const response = await fetch('https://localhost:3001/api/client');
+    if (!response.ok) throw new Error('Server returned ' + response.status);
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    
+    if (data.primary_name) {
+      document.getElementById('primaryName').value = data.primary_name;
+    }
+    
+    if (data.spouse_name) {
+      document.getElementById('hasSpouse').checked = true;
+      toggleSpouse();
+      document.getElementById('spouseName').value = data.spouse_name;
+    } else {
+      document.getElementById('hasSpouse').checked = false;
+      toggleSpouse();
+    }
+    
+    status.textContent = '✓ Loaded: ' + (data.household_name || data.primary_name);
+    status.className = 'crm-status success';
+    
+  } catch (err) {
+    if (err.name === 'TypeError' && err.message.includes('Load failed')) {
+      status.textContent = '✗ MinervaBridge not running.';
+    } else {
+      status.textContent = '✗ ' + err.message;
+    }
+    status.className = 'crm-status error';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Pull from CRM';
+  }
+}
+
+async function checkBridgeStatus() {
+  const status = document.getElementById('crmStatus');
+  if (!status) return;
+  try {
+    const resp = await fetch('https://localhost:3001/api/status');
+    if (resp.ok) {
+      status.textContent = 'MinervaBridge connected';
+      status.className = 'crm-status success';
+    }
+  } catch {
+    status.textContent = 'MinervaBridge not detected';
+    status.className = 'crm-status';
+  }
+}
 
 // ── Navigation ─────────────────────────────────────────────
 function goToScreen(n) {
@@ -166,7 +228,6 @@ function collectItems(listId) {
 }
 
 function collectSteps() {
-  // Returns array of { blockId, blockLabel, steps[] }
   const result = [];
   const stepsList = document.getElementById('steps-list');
   let current = null;
@@ -234,22 +295,15 @@ async function generateLetter() {
     const objs      = collectItems('objectives-list');
     const steps     = collectSteps();
 
-    // Step 1: Check JSZip is available
     if (typeof JSZip === 'undefined') throw new Error('JSZip library not loaded. Check network connection.');
 
-    // Step 2: Load template as ArrayBuffer
     const resp = await fetch('https://q2wmpbgtvk-jpg.github.io/minerva-addin/template.docx');
     if (!resp.ok) throw new Error('Could not load template. Is the server running?');
     const templateBuffer = await resp.arrayBuffer();
 
-    // Step 3: Open with JSZip
     const zip = await JSZip.loadAsync(templateBuffer);
     if (!zip.file('word/document.xml')) throw new Error('Template zip missing document.xml');
 
-    // Helper: replace all occurrences in a zip entry
-    // If find is a string starting with "PARA:", find the enclosing <w:p...>...</w:p>
-    // containing that text marker and replace the whole paragraph.
-    // Otherwise does a simple string split/join replace.
     async function replaceInEntry(filename, replacements) {
       const file = zip.file(filename);
       if (!file) return;
@@ -272,13 +326,10 @@ async function generateLetter() {
       zip.file(filename, text);
     }
 
-    // Build the goals, objectives, and steps OOXML as raw XML strings
-    // (to be inserted by replacing the placeholder run text with OOXML paragraphs)
-    const goalsXml   = buildListXmlRuns(goals, 11);  // numId 11 - goals list
-    const objsXml    = buildListXmlRuns(objs, 20);  // numId 20 - restarts at 1
-    const stepsXml   = buildStepsXmlRuns(steps);    // numId 9 - matches original
+    const goalsXml   = buildListXmlRuns(goals, 11);
+    const objsXml    = buildListXmlRuns(objs, 20);
+    const stepsXml   = buildStepsXmlRuns(steps);
 
-    // All text replacements - applied to document.xml and headers
     const textReplacements = [
       ['{{CLIENT_NAME}}', x(clients)],
       ['{{DATE}}',        x(today)],
@@ -286,19 +337,16 @@ async function generateLetter() {
       ['{{HOURS}}',       x(String(hours))],
     ];
 
-    // For sections, replace entire paragraphs containing the placeholder text
     const sectionReplacements = [
       ['PARA:{{GOALS}}',            goalsXml],
       ['PARA:{{OBJECTIVES}}',       objsXml],
       ['PARA:{{PLANNING_BLOCKS}}',  stepsXml],
     ];
 
-    // Spouse signature
     const spouseReplacement = hasSpouse
       ? [['{{SPOUSE_SIGNATURE}}', x(spouse)]]
       : [['{{SPOUSE_SIGNATURE}}', '']];
 
-    // Pronoun swap for solo clients
     const pronounReplacements = !hasSpouse ? [
       ['We have read', 'I have read'],
       ['We will pay', 'I will pay'],
@@ -308,7 +356,6 @@ async function generateLetter() {
       ['we receive', 'I receive'],
     ] : [];
 
-    // Apply to document.xml
     await replaceInEntry('word/document.xml', [
       ...textReplacements,
       ...sectionReplacements,
@@ -316,15 +363,12 @@ async function generateLetter() {
       ...pronounReplacements,
     ]);
 
-    // Apply to headers
     for (const hFile of ['word/header1.xml', 'word/header2.xml']) {
       await replaceInEntry(hFile, textReplacements);
     }
 
-    // Generate modified docx as base64
     const modifiedBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
 
-    // Step 6: Open as new document
     if (typeof Word === 'undefined') throw new Error('Word API not available.');
     await Word.run(async ctx => {
       if (!Office.context.requirements.isSetSupported('WordApiHiddenDocument', '1.3')) {
@@ -350,8 +394,6 @@ async function generateLetter() {
 // ── Raw XML builders (JSZip direct insertion) ─────────────
 
 function buildListXmlRuns(items, numId = 11) {
-  // numId=11 → Goals (decimal, left=900 hanging=360 matching template)
-  // numId=20 → Objectives (decimal, restarts at 1)
   return items.map(text =>
     `<w:p><w:pPr>` +
     `<w:numPr><w:ilvl w:val="0"/><w:numId w:val="${numId}"/></w:numPr>` +
@@ -365,8 +407,6 @@ function buildListXmlRuns(items, numId = 11) {
 }
 
 function buildStepsXmlRuns(groups) {
-  // Use numId=9 with original letter indentation (left=1353 hanging=446)
-  // This matches Phase 2 formatting exactly
   const blockParas = groups.flatMap(g =>
     g.steps.map(text =>
       `<w:p><w:pPr>` +
