@@ -147,10 +147,46 @@ async function generateIPS() {
     const buf = await resp.arrayBuffer();
     const zip = await JSZip.loadAsync(buf);
 
+    // Sections to remove entirely when their content is empty.
+    // Each entry: the placeholder, and the heading text that precedes it.
+    const removableSections = [
+      { placeholder: '{{CASH_NEEDS}}',            heading: 'Cash Needs' },
+      { placeholder: '{{UNIQUE_CONSIDERATIONS}}', heading: 'Unique Circumstances' },
+    ];
+
     async function replaceInEntry(filename) {
       const file = zip.file(filename);
       if (!file) return;
       let text = await file.async('string');
+
+      // First, remove entire sections where content is empty
+      for (const section of removableSections) {
+        const value = replacements[section.placeholder] || '';
+        if (!value.trim()) {
+          // Remove the heading paragraph
+          const headingPos = text.indexOf(section.heading);
+          if (headingPos !== -1) {
+            const hStart = text.lastIndexOf('<w:p>', headingPos);
+            const hEnd = text.indexOf('</w:p>', headingPos) + '</w:p>'.length;
+            if (hStart !== -1 && hEnd > hStart) {
+              text = text.slice(0, hStart) + text.slice(hEnd);
+            }
+          }
+          // Remove the placeholder paragraph
+          const placeholderPos = text.indexOf(section.placeholder);
+          if (placeholderPos !== -1) {
+            const pStart = text.lastIndexOf('<w:p>', placeholderPos);
+            const pEnd = text.indexOf('</w:p>', placeholderPos) + '</w:p>'.length;
+            if (pStart !== -1 && pEnd > pStart) {
+              text = text.slice(0, pStart) + text.slice(pEnd);
+            }
+          }
+          // Remove from replacements so we don't try to replace it later
+          delete replacements[section.placeholder];
+        }
+      }
+
+      // Then do normal text replacements for remaining fields
       for (const [find, replace] of Object.entries(replacements)) {
         text = text.split(find).join(x(replace));
       }
