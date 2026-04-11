@@ -332,6 +332,7 @@ async function generateLetter() {
 
     const textReplacements = [
       ['{{CLIENT_NAME}}', x(clients)],
+      ['{{PRIMARY_SIGNATURE}}', x(primary)],
       ['{{DATE}}',        x(today)],
       ['{{TOTAL_FEE}}',   x(fee.toLocaleString('en-US'))],
       ['{{HOURS}}',       x(String(hours))],
