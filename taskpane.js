@@ -343,10 +343,10 @@ async function generateLetter() {
       ['PARA:{{PLANNING_BLOCKS}}',  stepsXml],
     ];
 
-    // Spouse signature - if no spouse, we'll remove the entire table row after other replacements
+    // Spouse signature
     const spouseReplacement = hasSpouse
       ? [['{{SPOUSE_SIGNATURE}}', x(spouse)]]
-      : [['{{SPOUSE_SIGNATURE}}', '']];
+      : [];
 
     const pronounReplacements = !hasSpouse ? [
       ['We have read', 'I have read'],
@@ -378,6 +378,8 @@ async function generateLetter() {
         }
       }
     }
+
+    // Apply to headers
 
     for (const hFile of ['word/header1.xml', 'word/header2.xml']) {
       await replaceInEntry(hFile, textReplacements);
