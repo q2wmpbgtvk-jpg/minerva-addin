@@ -205,8 +205,6 @@ async function generateIAA() {
       textReplacements.push(['{{CLIENT2_NAME}}', x(c2)]);
     }
 
-    await replaceInEntry(zip, 'word/document.xml', textReplacements);
-
   await replaceInEntry(zip, 'word/document.xml', textReplacements);
 
 // If no second client, remove CLIENT2 signature line and underline paragraph
@@ -243,8 +241,6 @@ if (!hasC2 || !c2) {
 
   zip.file('word/document.xml', docText);
 }
-      zip.file('word/document.xml', docText);
-    }
 
     const modifiedBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
 
