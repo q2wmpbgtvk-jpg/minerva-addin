@@ -1,7 +1,8 @@
 /* ── IPS Task Pane ─────────────────────────────────────────────────────────
-   Screens: 1) Search  2) Preview/edit  3) Signers  4) Done
-   Data source: Node.js server at localhost:3001
+   Screens: 1) Preview/edit  2) Signers  3) Done
+   Data source: MinervaBridge local server at localhost:3001
    Models fetched from /api/models on load (no hardcoded values)
+   Client data loaded automatically from staged file on open
    ───────────────────────────────────────────────────────────────────────── */
 
 'use strict';
@@ -28,7 +29,6 @@ async function loadModels() {
     }
   } catch (e) {
     console.warn('Could not load models from MinervaBridge:', e.message);
-    // Fall back to built-in defaults so the add-in still works if server is slow
     MGP_CPI = 0.0395;
     PORTFOLIOS = {
       'Equity Tilted Balanced': { grossReturn: 0.0808, maxDrawdown: -0.458, recoveryDays: 1139 },
@@ -70,12 +70,9 @@ function setStatus(id, msg, isError = false) {
   }
 }
 
-// ── Screen 1: Search ────────────────────────────────────────────────────────
-async function searchClient() {
-  const query = document.getElementById('searchInput').value.trim();
-  if (!query) return;
-
-  setStatus('status', 'Loading staged client...');
+// ── Load staged client automatically ────────────────────────────────────────
+async function loadStagedClient() {
+  setStatus('status', 'Loading staged client from MinervaBridge...');
   try {
     const resp = await fetch('https://localhost:3001/api/ips-client');
     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' from server');
@@ -86,14 +83,9 @@ async function searchClient() {
       return;
     }
 
-    if (!data.name.toLowerCase().includes(query.toLowerCase())) {
-      setStatus('status', `Staged client is "${data.name}" — does not match "${query}". Stage the correct client in MinervaBridge.`, true);
-      return;
-    }
-
     loadClient(data);
   } catch (e) {
-    setStatus('status', 'Error: ' + e.message + ' (' + e.name + ')', true);
+    setStatus('status', 'Could not connect to MinervaBridge. Make sure the app is running. (' + e.message + ')', true);
   }
 }
 
@@ -245,12 +237,8 @@ function x(str) {
 // ── Init ────────────────────────────────────────────────────────────────────
 Office.onReady(async () => {
   await loadModels();
-  showScreen('screen1');
-  document.getElementById('searchBtn').addEventListener('click', searchClient);
-  document.getElementById('searchInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') searchClient();
-  });
-  document.getElementById('backBtn').addEventListener('click', () => showScreen('screen1'));
+  await loadStagedClient();
+  document.getElementById('backBtn').addEventListener('click', () => showScreen('screen2'));
   document.getElementById('nextBtn').addEventListener('click', goToSigners);
   document.getElementById('backBtn2').addEventListener('click', () => showScreen('screen2'));
   document.getElementById('generateBtn').addEventListener('click', generateIPS);
