@@ -207,13 +207,30 @@ async function generateIAA() {
 
     await replaceInEntry(zip, 'word/document.xml', textReplacements);
 
-    // If no second client, just blank out the placeholder
-if (!hasC2 || !c2) {
-  const docFile = zip.file('word/document.xml');
-  let docText = await docFile.async('string');
-  docText = docText.split('{{CLIENT2_NAME}}').join('');
-  zip.file('word/document.xml', docText);
-}
+   // If no second client, remove CLIENT2 signature line and underline paragraph
+    if (!hasC2 || !c2) {
+      const docFile = zip.file('word/document.xml');
+      let docText = await docFile.async('string');
+      // Remove paragraph containing {{CLIENT2_LINE}} (the underline row)
+      while (docText.indexOf('{{CLIENT2_LINE}}') !== -1) {
+        const pos = docText.indexOf('{{CLIENT2_LINE}}');
+        const pStart = docText.lastIndexOf('<w:p ', pos);
+        const pEnd = docText.indexOf('</w:p>', pos) + '</w:p>'.length;
+        if (pStart !== -1 && pEnd > pStart) {
+          docText = docText.slice(0, pStart) + docText.slice(pEnd);
+        } else { break; }
+      }
+      // Remove paragraph containing {{CLIENT2_NAME}}
+      while (docText.indexOf('{{CLIENT2_NAME}}') !== -1) {
+        const pos = docText.indexOf('{{CLIENT2_NAME}}');
+        const pStart = docText.lastIndexOf('<w:p ', pos);
+        const pEnd = docText.indexOf('</w:p>', pos) + '</w:p>'.length;
+        if (pStart !== -1 && pEnd > pStart) {
+          docText = docText.slice(0, pStart) + docText.slice(pEnd);
+        } else { break; }
+      }
+      zip.file('word/document.xml', docText);
+    }
 
     const modifiedBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
 
