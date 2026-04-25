@@ -207,27 +207,22 @@ async function generateIAA() {
 
     await replaceInEntry(zip, 'word/document.xml', textReplacements);
 
-    // Remove CLIENT2 table row entirely if no second client
-    if (!hasC2 || !c2) {
-      const docFile = zip.file('word/document.xml');
-      let docText = await docFile.async('string');
-      while (docText.indexOf('{{CLIENT2_NAME}}') !== -1) {
-        const pos = docText.indexOf('{{CLIENT2_NAME}}');
-        const rowStart = docText.lastIndexOf('<w:tr ', pos);
-        const rowEnd = docText.indexOf('</w:tr>', pos) + '</w:tr>'.length;
-        if (rowStart !== -1 && rowEnd > rowStart) {
-          docText = docText.slice(0, rowStart) + docText.slice(rowEnd);
-        } else {
-          // fallback: remove just the run
-          const rStart = docText.lastIndexOf('<w:r>', pos);
-          const rEnd = docText.indexOf('</w:r>', pos) + '</w:r>'.length;
-          if (rStart !== -1 && rEnd > rStart) {
-            docText = docText.slice(0, rStart) + docText.slice(rEnd);
-          } else {
-            break;
-          }
-        }
-      }
+    // Remove CLIENT2 runs if no second client
+if (!hasC2 || !c2) {
+  const docFile = zip.file('word/document.xml');
+  let docText = await docFile.async('string');
+  while (docText.indexOf('{{CLIENT2_NAME}}') !== -1) {
+    const pos = docText.indexOf('{{CLIENT2_NAME}}');
+    const rStart = docText.lastIndexOf('<w:r>', pos);
+    const rEnd = docText.indexOf('</w:r>', pos) + '</w:r>'.length;
+    if (rStart !== -1 && rEnd > rStart) {
+      docText = docText.slice(0, rStart) + docText.slice(rEnd);
+    } else {
+      break;
+    }
+  }
+  zip.file('word/document.xml', docText);
+}
       zip.file('word/document.xml', docText);
     }
 
