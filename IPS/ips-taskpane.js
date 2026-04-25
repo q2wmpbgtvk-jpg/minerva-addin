@@ -1,17 +1,42 @@
 /* ── IPS Task Pane ─────────────────────────────────────────────────────────
    Screens: 1) Search  2) Preview/edit  3) Signers  4) Done
    Data source: Node.js server at localhost:3001
+   Models fetched from /api/models on load (no hardcoded values)
    ───────────────────────────────────────────────────────────────────────── */
 
 'use strict';
 
-const MGP_CPI = 0.0395; // From risk/return spreadsheet (3/28/96 to 3/27/26)
+// Populated from /api/models on load
+let MGP_CPI = 0.0395;
+let PORTFOLIOS = {};
 
-const PORTFOLIOS = {
-  'Equity Tilted Balanced': { grossReturn: 0.0808, maxDrawdown: -0.458, recoveryDays: 1139 },
-  'Balanced':               { grossReturn: 0.0765, maxDrawdown: -0.390, recoveryDays: 896  },
-  'Conservative':           { grossReturn: 0.0638, maxDrawdown: -0.254, recoveryDays: 485  },
-};
+async function loadModels() {
+  try {
+    const resp = await fetch('https://localhost:3001/api/models');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (data.cpi !== undefined) MGP_CPI = data.cpi;
+    if (Array.isArray(data.models)) {
+      PORTFOLIOS = {};
+      for (const m of data.models) {
+        PORTFOLIOS[m.name] = {
+          grossReturn:  m.grossReturn,
+          maxDrawdown:  m.maxDrawdown,
+          recoveryDays: m.recoveryDays,
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load models from MinervaBridge:', e.message);
+    // Fall back to built-in defaults so the add-in still works if server is slow
+    MGP_CPI = 0.0395;
+    PORTFOLIOS = {
+      'Equity Tilted Balanced': { grossReturn: 0.0808, maxDrawdown: -0.458, recoveryDays: 1139 },
+      'Balanced':               { grossReturn: 0.0765, maxDrawdown: -0.390, recoveryDays: 896  },
+      'Conservative':           { grossReturn: 0.0638, maxDrawdown: -0.254, recoveryDays: 485  },
+    };
+  }
+}
 
 function pct(val) {
   return (val * 100).toFixed(1) + '%';
@@ -147,8 +172,6 @@ async function generateIPS() {
     const buf = await resp.arrayBuffer();
     const zip = await JSZip.loadAsync(buf);
 
-    // Sections to remove entirely when their content is empty.
-    // Each entry: the placeholder, and the heading text that precedes it.
     const removableSections = [
       { placeholder: '{{CASH_NEEDS}}',            heading: 'Cash Needs' },
       { placeholder: '{{UNIQUE_CONSIDERATIONS}}', heading: 'Unique Circumstances' },
@@ -159,11 +182,9 @@ async function generateIPS() {
       if (!file) return;
       let text = await file.async('string');
 
-      // First, remove entire sections where content is empty
       for (const section of removableSections) {
         const value = replacements[section.placeholder] || '';
         if (!value.trim()) {
-          // Remove the heading paragraph
           const headingPos = text.indexOf(section.heading);
           if (headingPos !== -1) {
             const hStart = text.lastIndexOf('<w:p>', headingPos);
@@ -172,7 +193,6 @@ async function generateIPS() {
               text = text.slice(0, hStart) + text.slice(hEnd);
             }
           }
-          // Remove the placeholder paragraph
           const placeholderPos = text.indexOf(section.placeholder);
           if (placeholderPos !== -1) {
             const pStart = text.lastIndexOf('<w:p>', placeholderPos);
@@ -181,12 +201,10 @@ async function generateIPS() {
               text = text.slice(0, pStart) + text.slice(pEnd);
             }
           }
-          // Remove from replacements so we don't try to replace it later
           delete replacements[section.placeholder];
         }
       }
 
-      // Then do normal text replacements for remaining fields
       for (const [find, replace] of Object.entries(replacements)) {
         text = text.split(find).join(x(replace));
       }
@@ -225,7 +243,8 @@ function x(str) {
 }
 
 // ── Init ────────────────────────────────────────────────────────────────────
-Office.onReady(() => {
+Office.onReady(async () => {
+  await loadModels();
   showScreen('screen1');
   document.getElementById('searchBtn').addEventListener('click', searchClient);
   document.getElementById('searchInput').addEventListener('keydown', e => {
