@@ -207,24 +207,13 @@ async function generateIAA() {
 
     await replaceInEntry(zip, 'word/document.xml', textReplacements);
 
-    // Remove CLIENT2 runs if no second client
+    // If no second client, just blank out the placeholder
 if (!hasC2 || !c2) {
   const docFile = zip.file('word/document.xml');
   let docText = await docFile.async('string');
-  while (docText.indexOf('{{CLIENT2_NAME}}') !== -1) {
-    const pos = docText.indexOf('{{CLIENT2_NAME}}');
-    const rStart = docText.lastIndexOf('<w:r>', pos);
-    const rEnd = docText.indexOf('</w:r>', pos) + '</w:r>'.length;
-    if (rStart !== -1 && rEnd > rStart) {
-      docText = docText.slice(0, rStart) + docText.slice(rEnd);
-    } else {
-      break;
-    }
-  }
+  docText = docText.split('{{CLIENT2_NAME}}').join('');
   zip.file('word/document.xml', docText);
 }
-      zip.file('word/document.xml', docText);
-    }
 
     const modifiedBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
 
