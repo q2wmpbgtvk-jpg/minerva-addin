@@ -219,14 +219,11 @@ if (!hasC2 || !c2) {
 
     if (typeof Word === 'undefined') throw new Error('Word API not available.');
     await Word.run(async ctx => {
-      if (!Office.context.requirements.isSetSupported('WordApiHiddenDocument', '1.3')) {
-        throw new Error('WordApiHiddenDocument 1.3 not supported. Please update Office.');
-      }
-      const newDoc = ctx.application.createDocument(modifiedBase64);
-      await ctx.sync();
-      newDoc.open();
-      await ctx.sync();
-    });
+  const newDoc = ctx.application.createDocument(modifiedBase64);
+  await ctx.sync();
+  newDoc.open();
+  await ctx.sync();
+});
 
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-success').classList.add('active');
