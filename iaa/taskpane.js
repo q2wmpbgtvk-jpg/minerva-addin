@@ -220,15 +220,33 @@ async function generateIAA() {
           docText = docText.slice(0, pStart) + docText.slice(pEnd);
         } else { break; }
       }
-      // Remove paragraph containing {{CLIENT2_NAME}}
-      while (docText.indexOf('{{CLIENT2_NAME}}') !== -1) {
-        const pos = docText.indexOf('{{CLIENT2_NAME}}');
-        const pStart = docText.lastIndexOf('<w:p ', pos);
-        const pEnd = docText.indexOf('</w:p>', pos) + '</w:p>'.length;
-        if (pStart !== -1 && pEnd > pStart) {
-          docText = docText.slice(0, pStart) + docText.slice(pEnd);
-        } else { break; }
-      }
+     // Remove paragraph containing {{CLIENT2_LINE}} (the underline row)
+while (docText.indexOf('{{CLIENT2_LINE}}') !== -1) {
+  const pos = docText.indexOf('{{CLIENT2_LINE}}');
+  const pStart = docText.lastIndexOf('<w:p ', pos);
+  const pEnd = docText.indexOf('</w:p>', pos) + '</w:p>'.length;
+  if (pStart !== -1 && pEnd > pStart) {
+    docText = docText.slice(0, pStart) + docText.slice(pEnd);
+  } else { break; }
+}
+
+// Remove CLIENT2_NAME — handles two occurrences with different paragraph structures
+while (docText.includes('{{CLIENT2_NAME}}')) {
+  const pos = docText.indexOf('{{CLIENT2_NAME}}');
+  const pStart = docText.lastIndexOf('<w:p ', pos);
+  const pEnd = docText.indexOf('</w:p>', pos) + '</w:p>'.length;
+  const para = docText.slice(pStart, pEnd);
+
+  if (para.includes('{{CLIENT1_NAME}}')) {
+    // Shared paragraph — remove only the CLIENT2 run, not the whole paragraph
+    const rStart = docText.lastIndexOf('<w:r', pos);
+    const rEnd = docText.indexOf('</w:r>', pos) + '</w:r>'.length;
+    docText = docText.slice(0, rStart) + docText.slice(rEnd);
+  } else {
+    // Own paragraph — remove the whole thing
+    docText = docText.slice(0, pStart) + docText.slice(pEnd);
+  }
+}
       zip.file('word/document.xml', docText);
     }
 
