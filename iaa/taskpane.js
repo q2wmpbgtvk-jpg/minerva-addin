@@ -202,8 +202,9 @@ async function generateIAA() {
     ];
 
     if (hasC2 && c2) {
-      textReplacements.push(['{{CLIENT2_NAME}}', x(c2)]);
-    }
+  textReplacements.push(['{{CLIENT2_NAME}}', x(c2)]);
+  textReplacements.push(['{{CLIENT2_LINE}}', '']);  // strip marker text, keep the underline paragraph
+}
 
   await replaceInEntry(zip, 'word/document.xml', textReplacements);
 
