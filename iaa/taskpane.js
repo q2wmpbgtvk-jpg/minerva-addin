@@ -229,10 +229,20 @@ if (!hasC2 || !c2) {
     const pEnd = docText.indexOf('</w:p>', pos) + '</w:p>'.length;
     const para = docText.slice(pStart, pEnd);
     const c1 = document.getElementById('client1Name').value.trim();
-      if (para.includes(x(c1))) {      // Shared paragraph — remove only the CLIENT2 run, not the whole paragraph
-      const rStart = docText.lastIndexOf('<w:r', pos);
+    if (para.includes(x(c1))) {
+      // Shared paragraph — remove only the CLIENT2 run
+      // Use regex to find the true <w:r> start (not <w:rPr> or <w:rFonts>)
+      const runPattern = /<w:r[ >]/g;
+      let rStart = -1, match;
+      runPattern.lastIndex = 0;
+      const searchRegion = docText.slice(0, pos);
+      while ((match = runPattern.exec(searchRegion)) !== null) {
+        rStart = match.index;
+      }
       const rEnd = docText.indexOf('</w:r>', pos) + '</w:r>'.length;
-      docText = docText.slice(0, rStart) + docText.slice(rEnd);
+      if (rStart !== -1) {
+        docText = docText.slice(0, rStart) + docText.slice(rEnd);
+      }
     } else {
       // Own paragraph — remove the whole thing
       docText = docText.slice(0, pStart) + docText.slice(pEnd);
